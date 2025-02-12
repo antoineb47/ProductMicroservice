@@ -47,3 +47,36 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+publish/
+
+# Visual Studio files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+
+# .NET Core
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Environment Files
+*.env
+.env.*
+
+# Test Results
+TestResults/
+[Cc]overage/
+*.coverage
+*.coveragexml
+
+# Temporary files
+*.tmp
+*.temp
+*.log

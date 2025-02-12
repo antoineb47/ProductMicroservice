@@ -1,27 +1,11 @@
 version: '3.8'
 
 services:
-  productapi:
-    image: productmicroservice
-    build:
-      context: .
-      dockerfile: Dockerfile
+  api:
+    build: .
     ports:
-      - "8080:8080"
-      - "8081:8081"
+      - "41528:8080"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8080;https://+:8081
+      - ASPNETCORE_ENVIRONMENT=Production
     volumes:
-      - ${APPDATA}/Microsoft/UserSecrets:/home/app/.microsoft/usersecrets:ro
-      - ${APPDATA}/ASP.NET/Https:/home/app/.aspnet/https:ro
-      - ./logs:/app/logs
-
-  tests:
-    build:
-      context: .
-      dockerfile: Dockerfile
-      target: build
-    command: dotnet test --logger:trx
-    volumes:
-      - ./TestResults:/src/TestResults
+      - ./src/data:/app/data

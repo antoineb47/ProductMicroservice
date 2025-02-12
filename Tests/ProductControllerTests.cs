@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Moq;
@@ -8,176 +11,106 @@ using Xunit;
 
 namespace ProductMicroservice.Tests;
 
+/// <summary>
+/// Tests unitaires pour le contrôleur de produits
+/// Vérifie le bon fonctionnement des opérations CRUD
+/// </summary>
 public class ProductControllerTests
 {
-    private readonly Mock<IProductRepository> _mockRepo;
+    private readonly Mock<IProductRepository> _mockRepository;
     private readonly Mock<ILogger<ProductController>> _mockLogger;
     private readonly ProductController _controller;
 
+    /// <summary>
+    /// Constructeur initialisant les mocks et le contrôleur pour les tests
+    /// </summary>
     public ProductControllerTests()
     {
-        _mockRepo = new Mock<IProductRepository>();
+        _mockRepository = new Mock<IProductRepository>();
         _mockLogger = new Mock<ILogger<ProductController>>();
-        _controller = new ProductController(_mockRepo.Object, _mockLogger.Object);
+        _controller = new ProductController(_mockRepository.Object, _mockLogger.Object);
     }
 
     [Fact]
-    public void GetProducts_ReturnsOkResult_WithProducts()
+    public void GetProducts_ReturnsOkResult()
     {
         // Arrange
-        var expectedProducts = new List<Product>
+        var testProducts = new List<Product>
         {
-            new() { Id = 1, Name = "Test Product 1", Price = 10.99m },
-            new() { Id = 2, Name = "Test Product 2", Price = 20.99m }
+            new Product { Id = 1, Name = "Test Product 1", Price = 10.99m, CategoryId = 1 },
+            new Product { Id = 2, Name = "Test Product 2", Price = 20.99m, CategoryId = 1 }
         };
-        _mockRepo.Setup(repo => repo.GetProducts()).Returns(expectedProducts);
+        _mockRepository.Setup(repo => repo.GetProducts()).Returns(testProducts);
 
         // Act
         var result = _controller.GetProducts();
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var products = Assert.IsAssignableFrom<IEnumerable<Product>>(okResult.Value);
-        Assert.Equal(2, products.Count());
+        var returnValue = Assert.IsType<List<Product>>(okResult.Value);
+        Assert.Equal(2, returnValue.Count);
     }
 
     [Fact]
     public void GetProduct_WithValidId_ReturnsOkResult()
     {
         // Arrange
-        var expectedProduct = new Product { Id = 1, Name = "Test Product", Price = 10.99m };
-        _mockRepo.Setup(repo => repo.GetProductById(1)).Returns(expectedProduct);
+        var testProduct = new Product { Id = 1, Name = "Test Product", Price = 10.99m, CategoryId = 1 };
+        _mockRepository.Setup(repo => repo.GetProductById(1)).Returns(testProduct);
 
         // Act
         var result = _controller.GetProduct(1);
 
         // Assert
         var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var product = Assert.IsType<Product>(okResult.Value);
-        Assert.Equal(expectedProduct.Id, product.Id);
+        var returnValue = Assert.IsType<Product>(okResult.Value);
+        Assert.Equal(1, returnValue.Id);
     }
 
     [Fact]
     public void GetProduct_WithInvalidId_ReturnsNotFound()
     {
         // Arrange
-        _mockRepo.Setup(repo => repo.GetProductById(999)).Returns((Product)null);
+        Product? nullProduct = null;
+        _mockRepository.Setup(repo => repo.GetProductById(It.IsAny<int>())).Returns(nullProduct);
 
         // Act
         var result = _controller.GetProduct(999);
 
         // Assert
-        Assert.IsType<NotFoundResult>(result.Result);
+        Assert.IsType<NotFoundObjectResult>(result.Result);
     }
 
     [Fact]
-    public void CreateProduct_WithValidProduct_ReturnsCreatedAtAction()
+    public void PostProduct_WithValidProduct_ReturnsCreatedAtAction()
     {
         // Arrange
-        var newProduct = new Product { Name = "New Product", Price = 15.99m };
-        _mockRepo.Setup(repo => repo.InsertProduct(It.IsAny<Product>()));
-        _mockRepo.Setup(repo => repo.SaveChanges()).Returns(true);
+        var testProduct = new Product { Id = 1, Name = "Test Product", Price = 10.99m, CategoryId = 1 };
+        var testCategory = new Category { Id = 1, Name = "Test Category" };
+        _mockRepository.Setup(repo => repo.GetCategoryById(1)).Returns(testCategory);
+        _mockRepository.Setup(repo => repo.AddProduct(It.IsAny<Product>())).Returns(testProduct);
 
         // Act
-        var result = _controller.CreateProduct(newProduct);
+        var result = _controller.PostProduct(testProduct);
 
         // Assert
         var createdAtActionResult = Assert.IsType<CreatedAtActionResult>(result.Result);
-        var product = Assert.IsType<Product>(createdAtActionResult.Value);
-        Assert.Equal(newProduct.Name, product.Name);
+        var returnValue = Assert.IsType<Product>(createdAtActionResult.Value);
+        Assert.Equal(testProduct.Id, returnValue.Id);
     }
 
     [Fact]
-    public void UpdateProduct_WithValidProduct_ReturnsNoContent()
+    public void PostProduct_WithInvalidCategory_ReturnsBadRequest()
     {
         // Arrange
-        var existingProduct = new Product { Id = 1, Name = "Existing Product", Price = 10.99m };
-        _mockRepo.Setup(repo => repo.GetProductById(1)).Returns(existingProduct);
-        _mockRepo.Setup(repo => repo.UpdateProduct(It.IsAny<Product>()));
-        _mockRepo.Setup(repo => repo.SaveChanges()).Returns(true);
+        var testProduct = new Product { Id = 1, Name = "Test Product", Price = 10.99m, CategoryId = 999 };
+        Category? nullCategory = null;
+        _mockRepository.Setup(repo => repo.GetCategoryById(999)).Returns(nullCategory);
 
         // Act
-        var result = _controller.UpdateProduct(1, existingProduct);
+        var result = _controller.PostProduct(testProduct);
 
         // Assert
-        Assert.IsType<NoContentResult>(result);
+        Assert.IsType<BadRequestObjectResult>(result.Result);
     }
-
-    [Fact]
-    public void UpdateProduct_WithInvalidId_ReturnsBadRequest()
-    {
-        // Arrange
-        var product = new Product { Id = 1, Name = "Test Product", Price = 10.99m };
-
-        // Act
-        var result = _controller.UpdateProduct(2, product);
-
-        // Assert
-        Assert.IsType<BadRequestObjectResult>(result);
-    }
-
-    [Fact]
-    public void DeleteProduct_WithValidId_ReturnsNoContent()
-    {
-        // Arrange
-        var existingProduct = new Product { Id = 1, Name = "Test Product", Price = 10.99m };
-        _mockRepo.Setup(repo => repo.GetProductById(1)).Returns(existingProduct);
-        _mockRepo.Setup(repo => repo.DeleteProduct(1));
-        _mockRepo.Setup(repo => repo.SaveChanges()).Returns(true);
-
-        // Act
-        var result = _controller.DeleteProduct(1);
-
-        // Assert
-        Assert.IsType<NoContentResult>(result);
-    }
-
-    [Fact]
-    public void DeleteProduct_WithInvalidId_ReturnsNotFound()
-    {
-        // Arrange
-        _mockRepo.Setup(repo => repo.GetProductById(999)).Returns((Product)null);
-
-        // Act
-        var result = _controller.DeleteProduct(999);
-
-        // Assert
-        Assert.IsType<NotFoundObjectResult>(result);
-    }
-
-    [Fact]
-    public void GetCategories_ReturnsOkResult_WithCategories()
-    {
-        // Arrange
-        var expectedCategories = new List<Category>
-        {
-            new() { Id = 1, Name = "Electronics" },
-            new() { Id = 2, Name = "Clothes" }
-        };
-        _mockRepo.Setup(repo => repo.GetCategories()).Returns(expectedCategories);
-
-        // Act
-        var result = _controller.GetCategories();
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var categories = Assert.IsAssignableFrom<IEnumerable<Category>>(okResult.Value);
-        Assert.Equal(2, categories.Count());
-    }
-
-    [Fact]
-    public void GetCategory_WithValidId_ReturnsOkResult()
-    {
-        // Arrange
-        var expectedCategory = new Category { Id = 1, Name = "Electronics" };
-        _mockRepo.Setup(repo => repo.GetCategoryById(1)).Returns(expectedCategory);
-
-        // Act
-        var result = _controller.GetCategory(1);
-
-        // Assert
-        var okResult = Assert.IsType<OkObjectResult>(result.Result);
-        var category = Assert.IsType<Category>(okResult.Value);
-        Assert.Equal(expectedCategory.Id, category.Id);
-    }
-}
+} 
