@@ -9,13 +9,6 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 try {
     # Configuration
     $rootPath = (Get-Item $PSScriptRoot).Parent.Parent.FullName
-    $srcPath = Join-Path $rootPath "src"
-    $prodSettings = Get-Content -Path (Join-Path $srcPath "appsettings.Production.json") | ConvertFrom-Json
-    
-    # Validation des paramètres
-    if (-not $prodSettings.DockerSettings -or -not $prodSettings.ApiSettings) {
-        throw "Configuration Docker ou API manquante dans appsettings.Production.json"
-    }
 
     Write-Host "`nVérification de l'environnement Docker..." -ForegroundColor Cyan
     $needsAction = $false
@@ -161,43 +154,52 @@ try {
 
     # Déploiement Docker
     Write-Host "`nDéploiement vers Docker..." -ForegroundColor Cyan
-    Write-Host "Image: $($prodSettings.DockerSettings.ImageName)" -ForegroundColor Gray
+    Write-Host "Image: productmicroservice" -ForegroundColor Gray
+    Write-Host "Conteneur: productmicroservice" -ForegroundColor Gray
     Write-Host "Port: 5040" -ForegroundColor Gray
-
-    # Préparation des répertoires
-    # Write-Host "`nPréparation des répertoires..." -ForegroundColor Green
-    # $directories = @(
-    #     (Join-Path $rootPath "data"),
-    #     (Join-Path $rootPath "logs")
-    # )
-    # foreach ($dir in $directories) {
-    #     if (-not (Test-Path $dir)) { 
-    #         New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    #         Write-Host "Création du répertoire: $dir" -ForegroundColor Yellow
-    #     }
-    # }
 
     # Déploiement des conteneurs
     Write-Host "`nDéploiement des conteneurs..." -ForegroundColor Green
     Push-Location $rootPath
 
-    # Stop any existing containers
+    # Arrêt des conteneurs existants
+    Write-Host "`nArrêt des conteneurs existants..." -ForegroundColor Yellow
     docker-compose -f (Join-Path $rootPath "docker-compose.yml") down
 
-    # Start containers in foreground
-    Write-Host "`nDémarrage des conteneurs... Ctrl+C pour arrêter" -ForegroundColor Yellow
-    docker-compose -f (Join-Path $rootPath "docker-compose.yml") up --build
+    # Construction de l'image
+    Write-Host "`nConstruction de l'image..." -ForegroundColor Yellow
+    docker-compose -f (Join-Path $rootPath "docker-compose.yml") build
 
-    # Test final
+    # Démarrage des conteneurs en arrière-plan
+    Write-Host "`nDémarrage des conteneurs..." -ForegroundColor Yellow
+    docker-compose -f (Join-Path $rootPath "docker-compose.yml") up -d
+
+    # Attente que le conteneur soit prêt
+    Write-Host "`nAttente du démarrage du conteneur..." -ForegroundColor Yellow
+    Start-Sleep -Seconds 5
+
+    # Affichage des informations détaillées du conteneur
+    Write-Host "`nInformations du conteneur:" -ForegroundColor Cyan
+    docker ps --filter "name=productmicroservice" --format "table {{.ID}}\t{{.Image}}\t{{.Ports}}\t{{.Status}}"
+    
+    Write-Host "`nDétails de l'image:" -ForegroundColor Cyan
+    docker images productmicroservice --format "table {{.ID}}\t{{.Repository}}\t{{.Tag}}\t{{.Size}}"
+
+    # Affichage des logs du conteneur
+    Write-Host "`nLogs du conteneur:" -ForegroundColor Cyan
+    docker logs productmicroservice
+
+    # Test de l'API
     $apiUrl = "http://localhost:5040/api/product"
     Start-Process $apiUrl
     Write-Host "`nDéploiement terminé!" -ForegroundColor Green
     Write-Host "API: $apiUrl" -ForegroundColor Cyan
 
+    Write-Host "`nPour arrêter le conteneur, exécutez:" -ForegroundColor Yellow
+    Write-Host "docker-compose down" -ForegroundColor Gray
+
     # Nettoyage des processus
     Get-Process | Where-Object { $_.MainWindowTitle -like "*$apiUrl*" } | Stop-Process -Force
-
-    # No need for cleanup as docker-compose up (without -d) will handle it
 }
 catch {
     Write-Host "`nErreur: $($_.Exception.Message)" -ForegroundColor Red

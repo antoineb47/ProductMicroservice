@@ -1,19 +1,20 @@
+# Configuration des services Docker
 version: '3.4'
 
 services:
+  # Service API principal
   api:
     build:
       context: .
       dockerfile: src/Dockerfile
-    image: ${DOCKER_REGISTRY-}productmicroservice
     container_name: productmicroservice
     ports:
-      - "5040:80"
+      - "5040:8080"
     volumes:
       - ./src/data:/app/data
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
-      - ASPNETCORE_URLS=http://+:80
+      - ASPNETCORE_URLS=http://+:8080
     restart: unless-stopped
 
 

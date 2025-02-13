@@ -4,12 +4,13 @@ using ProductMicroservice.Repository;
 using Serilog;
 using System.Text.Json.Serialization;
 
-Console.WriteLine("Starting ProductMicroservice...");
+// Point d'entrée de l'application
+Console.WriteLine("Démarrage de ProductMicroservice...");
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configure console logging first
-Console.WriteLine("Configuring logging...");
+// Configuration du système de journalisation
+Console.WriteLine("Configuration de la journalisation...");
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .CreateBootstrapLogger();
@@ -18,62 +19,70 @@ builder.Host.UseSerilog();
 
 try
 {
-    Console.WriteLine("Configuring services...");
+    // Configuration des services de l'application
+    Console.WriteLine("Configuration des services...");
     builder.Services.AddControllers()
         .AddJsonOptions(options => 
         {
             options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
         });
 
-    // Add Swagger for development environment
+    // Configuration de Swagger uniquement pour l'environnement de développement
     if (builder.Environment.IsDevelopment())
     {
         builder.Services.AddEndpointsApiExplorer();
         builder.Services.AddSwaggerGen();
     }
 
-    // Configure SQLite
+    // Configuration de la base de données SQLite
     var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    Console.WriteLine($"Connection string: {connectionString}");
+    Console.WriteLine($"Chaîne de connexion : {connectionString}");
     
     builder.Services.AddDbContext<ProductContext>(options =>
     {
         options.UseSqlite(connectionString);
     });
 
+    // Enregistrement du repository dans le conteneur d'injection de dépendances
     builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
+    // Construction de l'application
     var app = builder.Build();
 
-    // Ensure database exists and is seeded
-    Console.WriteLine("Checking database...");
+    // Création et initialisation de la base de données si nécessaire
+    Console.WriteLine("Vérification de la base de données...");
     using (var scope = app.Services.CreateScope())
     {
         var context = scope.ServiceProvider.GetRequiredService<ProductContext>();
         context.Database.EnsureCreated();
     }
 
+    // Configuration du middleware de gestion des erreurs
     app.UseExceptionHandler("/error");
 
-    // Configure Swagger for development environment
+    // Configuration de Swagger pour l'environnement de développement
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
         app.UseSwaggerUI();
     }
 
+    // Configuration des routes de l'API
     app.MapControllers();
 
-    Console.WriteLine("Starting web host...");
+    // Démarrage du serveur web
+    Console.WriteLine("Démarrage du serveur web...");
     app.Run();
 }
 catch (Exception ex)
 {
-    Console.WriteLine($"Application terminated unexpectedly: {ex}");
-    Log.Fatal(ex, "Application terminated unexpectedly");
+    // Gestion des erreurs fatales
+    Console.WriteLine($"L'application s'est arrêtée de manière inattendue : {ex}");
+    Log.Fatal(ex, "L'application s'est arrêtée de manière inattendue");
     throw;
 }
 finally
 {
+    // Nettoyage des ressources de journalisation
     Log.CloseAndFlush();
 }

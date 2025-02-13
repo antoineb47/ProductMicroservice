@@ -1,32 +1,16 @@
-# Use the .NET SDK image for building the application
+# Build stage
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
-WORKDIR /solution
-
-# Copy solution files
+WORKDIR /app
 COPY . .
-
-# Restore dependencies
 RUN dotnet restore src/ProductMicroservice.csproj
+RUN dotnet test tests/ProductMicroservice.Tests.csproj --no-build
+RUN dotnet publish src/ProductMicroservice.csproj -c Release -o out
 
-# Build and publish
-RUN dotnet publish src/ProductMicroservice.csproj -c Release -o /app/publish /p:UseAppHost=false
-
-# Use the ASP.NET Core runtime image for running the application
+# Runtime stage
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
-COPY --from=build /app/publish ./
-
-# Create directories
-RUN mkdir -p /app/data
-
-# Set environment variables
-ARG ASPNETCORE_ENVIRONMENT=Production
-ENV ASPNETCORE_ENVIRONMENT=$ASPNETCORE_ENVIRONMENT
-ENV ASPNETCORE_URLS=http://+:80
-
-# Add healthcheck
-HEALTHCHECK --interval=30s --timeout=3s \
-    CMD wget -qO- http://localhost:80/api/product || exit 1
-
+COPY --from=build /app/out .
+VOLUME /app/data
+ENV ASPNETCORE_ENVIRONMENT=Production
 EXPOSE 80
 ENTRYPOINT ["dotnet", "ProductMicroservice.dll"] 
