@@ -10,19 +10,13 @@ using Xunit;
 
 namespace ProductMicroservice.Tests;
 
-/// <summary>
-/// Tests unitaires pour le repository de produits
-/// Vérifie les opérations de base de données avec une base de données en mémoire
-/// </summary>
+
 public class ProductRepositoryTests : IDisposable
 {
     private readonly Mock<ILogger<ProductRepository>> _mockLogger;
     private readonly ProductContext _context;
     private readonly ProductRepository _repository;
 
-    /// <summary>
-    /// Constructeur initialisant la base de données en mémoire avec des données de test
-    /// </summary>
     public ProductRepositoryTests()
     {
         var options = new DbContextOptionsBuilder<ProductContext>()
@@ -39,9 +33,8 @@ public class ProductRepositoryTests : IDisposable
     private void SeedTestData()
     {
         _context.Database.EnsureDeleted();
-        _context.Database.EnsureCreated(); // This will trigger OnModelCreating and seed default categories
+        _context.Database.EnsureCreated();
 
-        // Get the Electronics and Clothes categories that were seeded by OnModelCreating
         var electronics = _context.Categories.First(c => c.Name == "Electronics");
         var clothes = _context.Categories.First(c => c.Name == "Clothes");
 
@@ -106,7 +99,6 @@ public class ProductRepositoryTests : IDisposable
         Assert.Equal(product.Name, result.Name);
         Assert.Equal(product.CategoryId, result.CategoryId);
 
-        // Verify it's in the database
         var savedProduct = _context.Products.Find(result.Id);
         Assert.NotNull(savedProduct);
         Assert.Equal(product.Name, savedProduct.Name);
@@ -119,7 +111,7 @@ public class ProductRepositoryTests : IDisposable
         var result = _repository.GetCategories();
 
         // Assert
-        Assert.Equal(3, result.Count()); // Expect 3 default categories
+        Assert.Equal(3, result.Count());
         Assert.Contains(result, c => c.Name == "Electronics");
         Assert.Contains(result, c => c.Name == "Clothes");
         Assert.Contains(result, c => c.Name == "Grocery");
@@ -158,7 +150,6 @@ public class ProductRepositoryTests : IDisposable
         Assert.NotEqual(0, result.Id);
         Assert.Equal(category.Name, result.Name);
 
-        // Verify it's in the database
         var savedCategory = _context.Categories.Find(result.Id);
         Assert.NotNull(savedCategory);
         Assert.Equal(category.Name, savedCategory.Name);

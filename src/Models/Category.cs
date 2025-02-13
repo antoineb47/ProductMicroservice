@@ -5,18 +5,12 @@ namespace ProductMicroservice.Models;
 /// </summary>
 public class Category
 {
-    /// <summary>
-    /// Identifiant unique de la catégorie
-    /// </summary>
+
     public int Id { get; set; }
 
-    /// <summary>
-    /// Nom de la catégorie
-    /// </summary>
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>
-    /// Description de la catégorie
-    /// </summary>
     public string Description { get; set; } = string.Empty;
+
+    public ICollection<Product> Products { get; set; } = new List<Product>();
 }

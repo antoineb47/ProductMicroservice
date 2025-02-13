@@ -11,19 +11,13 @@ using Xunit;
 
 namespace ProductMicroservice.Tests;
 
-/// <summary>
-/// Tests unitaires pour le contrôleur de produits
-/// Vérifie le bon fonctionnement des opérations CRUD
-/// </summary>
 public class ProductControllerTests
 {
     private readonly Mock<IProductRepository> _mockRepository;
     private readonly Mock<ILogger<ProductController>> _mockLogger;
     private readonly ProductController _controller;
 
-    /// <summary>
-    /// Constructeur initialisant les mocks et le contrôleur pour les tests
-    /// </summary>
+
     public ProductControllerTests()
     {
         _mockRepository = new Mock<IProductRepository>();
@@ -112,5 +106,83 @@ public class ProductControllerTests
 
         // Assert
         Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public void PutProduct_WithValidProduct_ReturnsNoContent()
+    {
+        // Arrange
+        var testProduct = new Product { Id = 1, Name = "Updated Product", Price = 15.99m, CategoryId = 1 };
+        var testCategory = new Category { Id = 1, Name = "Test Category" };
+        _mockRepository.Setup(repo => repo.GetCategoryById(1)).Returns(testCategory);
+
+        // Act
+        var result = _controller.PutProduct(1, testProduct);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        _mockRepository.Verify(repo => repo.UpdateProduct(It.IsAny<Product>()), Times.Once);
+        _mockRepository.Verify(repo => repo.SaveChanges(), Times.Once);
+    }
+
+    [Fact]
+    public void PutProduct_WithMismatchedId_ReturnsBadRequest()
+    {
+        // Arrange
+        var testProduct = new Product { Id = 2, Name = "Test Product", Price = 10.99m, CategoryId = 1 };
+
+        // Act
+        var result = _controller.PutProduct(1, testProduct);
+
+        // Assert
+        Assert.IsType<BadRequestResult>(result);
+        _mockRepository.Verify(repo => repo.UpdateProduct(It.IsAny<Product>()), Times.Never);
+    }
+
+    [Fact]
+    public void PutProduct_WithInvalidCategory_ReturnsBadRequest()
+    {
+        // Arrange
+        var testProduct = new Product { Id = 1, Name = "Test Product", Price = 10.99m, CategoryId = 999 };
+        Category? nullCategory = null;
+        _mockRepository.Setup(repo => repo.GetCategoryById(999)).Returns(nullCategory);
+
+        // Act
+        var result = _controller.PutProduct(1, testProduct);
+
+        // Assert
+        Assert.IsType<BadRequestObjectResult>(result);
+        _mockRepository.Verify(repo => repo.UpdateProduct(It.IsAny<Product>()), Times.Never);
+    }
+
+    [Fact]
+    public void DeleteProduct_WithValidId_ReturnsNoContent()
+    {
+        // Arrange
+        var testProduct = new Product { Id = 1, Name = "Test Product", Price = 10.99m, CategoryId = 1 };
+        _mockRepository.Setup(repo => repo.GetProductById(1)).Returns(testProduct);
+
+        // Act
+        var result = _controller.DeleteProduct(1);
+
+        // Assert
+        Assert.IsType<NoContentResult>(result);
+        _mockRepository.Verify(repo => repo.DeleteProduct(1), Times.Once);
+        _mockRepository.Verify(repo => repo.SaveChanges(), Times.Once);
+    }
+
+    [Fact]
+    public void DeleteProduct_WithInvalidId_ReturnsNotFound()
+    {
+        // Arrange
+        Product? nullProduct = null;
+        _mockRepository.Setup(repo => repo.GetProductById(999)).Returns(nullProduct);
+
+        // Act
+        var result = _controller.DeleteProduct(999);
+
+        // Assert
+        Assert.IsType<NotFoundObjectResult>(result);
+        _mockRepository.Verify(repo => repo.DeleteProduct(It.IsAny<int>()), Times.Never);
     }
 } 

@@ -6,14 +6,14 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Get port from configuration or environment variable
+// Récupérer le port depuis la configuration ou la variable d'environnement
 var port = builder.Configuration.GetValue<int>("ApiSettings:Port");
 if (port > 0)
 {
     builder.WebHost.UseUrls($"http://localhost:{port}");
 }
 
-// Serilog configuration
+// Configuration de Serilog
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File("logs/api-.log", rollingInterval: RollingInterval.Day)
@@ -23,7 +23,7 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// Add services to the container
+// Ajouter les services au conteneur
 builder.Services.AddControllers()
     .AddJsonOptions(options => 
     {
@@ -31,20 +31,20 @@ builder.Services.AddControllers()
         options.JsonSerializerOptions.WriteIndented = true;
     });
 
-// Configure SQLite
+// Configurer SQLite
 builder.Services.AddDbContext<ProductContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Configure Repository pattern
+// Configurer le pattern Repository
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 
 #if !RELEASE
-// Configure Swagger/OpenAPI
+// Configurer Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 #endif
 
-// Configure CORS
+// Configurer CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowSpecificOrigin",
@@ -57,14 +57,14 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-// Ensure database is created
+// S'assurer que la base de données est créée
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<ProductContext>();
     context.Database.EnsureCreated();
 }
 
-// Configure the HTTP request pipeline
+// Configurer le pipeline de requêtes HTTP
 if (app.Environment.IsDevelopment())
 {
 #if !RELEASE
@@ -82,7 +82,7 @@ else
     app.UseHsts();
 }
 
-// Add security headers
+// Ajouter les en-têtes de sécurité
 app.Use((context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -100,13 +100,13 @@ app.MapControllers();
 
 try
 {
-    Log.Information("Starting web application - Environment: {Environment}", 
+    Log.Information("Démarrage de l'application web - Environnement: {Environment}", 
         app.Environment.EnvironmentName);
     app.Run();
 }
 catch (Exception ex)
 {
-    Log.Fatal(ex, "Application terminated unexpectedly");
+    Log.Fatal(ex, "L'application s'est terminée de manière inattendue");
 }
 finally
 {

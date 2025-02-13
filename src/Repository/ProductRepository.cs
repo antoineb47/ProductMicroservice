@@ -4,243 +4,179 @@ using ProductMicroservice.Models;
 
 namespace ProductMicroservice.Repository;
 
-/// <summary>
-/// Implémentation du repository pour la gestion des produits et des catégories
-/// Gère les opérations de base de données en utilisant Entity Framework Core
-/// </summary>
 public class ProductRepository : IProductRepository
 {
     private readonly ProductContext _context;
     private readonly ILogger<ProductRepository> _logger;
 
-    /// <summary>
-    /// Constructeur du repository
-    /// </summary>
-    /// <param name="context">Le contexte de base de données</param>
-    /// <param name="logger">Le logger pour tracer les opérations</param>
     public ProductRepository(ProductContext context, ILogger<ProductRepository> logger)
     {
         _context = context;
         _logger = logger;
     }
 
-    /// <summary>
-    /// Récupère tous les produits disponibles
-    /// </summary>
-    /// <returns>Une collection de tous les produits avec leurs catégories associées</returns>
     public IEnumerable<Product> GetProducts()
     {
         try
         {
-            return _context.Products.ToList();
+            _logger.LogInformation("Récupération de tous les produits");
+            return _context.Products.Include(p => p.Category).ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la récupération de tous les produits");
+            _logger.LogError(ex, "Erreur lors de la récupération des produits");
             throw;
         }
     }
 
-    /// <summary>
-    /// Récupère un produit spécifique par son identifiant
-    /// </summary>
-    /// <param name="productId">L'identifiant du produit à récupérer</param>
-    /// <returns>Le produit correspondant à l'identifiant ou null si non trouvé</returns>
-    public Product? GetProductById(int productId)
+    public Product? GetProductById(int id)
     {
         try
         {
-            return _context.Products.FirstOrDefault(p => p.Id == productId);
+            _logger.LogInformation("Récupération du produit avec l'ID: {ProductId}", id);
+            return _context.Products.Include(p => p.Category).FirstOrDefault(p => p.Id == id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la récupération du produit avec l'ID: {ProductId}", productId);
+            _logger.LogError(ex, "Erreur lors de la récupération du produit avec l'ID: {ProductId}", id);
             throw;
         }
     }
 
-    /// <summary>
-    /// Ajoute un nouveau produit dans la base de données
-    /// </summary>
-    /// <param name="product">Le produit à ajouter</param>
-    /// <returns>Le produit ajouté</returns>
     public Product AddProduct(Product product)
     {
         try
         {
-            ArgumentNullException.ThrowIfNull(product);
-            var result = _context.Products.Add(product);
-            _context.SaveChanges();
-            return result.Entity;
+            _logger.LogInformation("Ajout d'un nouveau produit: {ProductName}", product.Name);
+            _context.Products.Add(product);
+            SaveChanges();
+            return product;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de l'ajout du produit: {ProductName}", product?.Name);
+            _logger.LogError(ex, "Erreur lors de l'ajout du produit: {ProductName}", product.Name);
             throw;
         }
     }
 
-    /// <summary>
-    /// Supprime un produit existant
-    /// </summary>
-    /// <param name="productId">L'identifiant du produit à supprimer</param>
-    public void DeleteProduct(int productId)
+    public void DeleteProduct(int id)
     {
         try
         {
-            var product = _context.Products.Find(productId) 
-                ?? throw new KeyNotFoundException($"Produit avec l'ID {productId} non trouvé");
-            
-            _context.Products.Remove(product);
-            _context.SaveChanges();
+            _logger.LogInformation("Suppression du produit: {ProductId}", id);
+            var product = _context.Products.Find(id);
+            if (product != null)
+            {
+                _context.Products.Remove(product);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la suppression du produit avec l'ID: {ProductId}", productId);
+            _logger.LogError(ex, "Erreur lors de la suppression du produit: {ProductId}", id);
             throw;
         }
     }
 
-    /// <summary>
-    /// Met à jour les informations d'un produit existant
-    /// </summary>
-    /// <param name="product">Le produit avec les nouvelles informations</param>
     public void UpdateProduct(Product product)
     {
         try
         {
-            ArgumentNullException.ThrowIfNull(product);
-            
-            var existingProduct = _context.Products.Find(product.Id);
-            if (existingProduct != null)
-            {
-                _context.Entry(existingProduct).CurrentValues.SetValues(product);
-                _context.SaveChanges();
-            }
+            _logger.LogInformation("Mise à jour du produit: {ProductId}", product.Id);
+            _context.Entry(product).State = EntityState.Modified;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la mise à jour du produit: {ProductId}", product?.Id);
+            _logger.LogError(ex, "Erreur lors de la mise à jour du produit: {ProductId}", product.Id);
             throw;
         }
     }
 
-    /// <summary>
-    /// Sauvegarde les modifications dans la base de données
-    /// </summary>
-    /// <returns>True si les modifications ont été sauvegardées avec succès, False sinon</returns>
-    public bool SaveChanges()
+    public void SaveChanges()
     {
         try
         {
-            return _context.SaveChanges() > 0;
+            _logger.LogInformation("Sauvegarde des modifications dans la base de données");
+            _context.SaveChanges();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la sauvegarde des modifications dans la base de données");
+            _logger.LogError(ex, "Erreur lors de la sauvegarde des modifications");
             throw;
         }
     }
 
-    /// <summary>
-    /// Récupère toutes les catégories disponibles
-    /// </summary>
-    /// <returns>Une collection de toutes les catégories avec leurs produits associés</returns>
     public IEnumerable<Category> GetCategories()
     {
         try
         {
+            _logger.LogInformation("Récupération de toutes les catégories");
             return _context.Categories.ToList();
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la récupération de toutes les catégories");
+            _logger.LogError(ex, "Erreur lors de la récupération des catégories");
             throw;
         }
     }
 
-    /// <summary>
-    /// Récupère une catégorie spécifique par son identifiant
-    /// </summary>
-    /// <param name="categoryId">L'identifiant de la catégorie à récupérer</param>
-    /// <returns>La catégorie correspondante à l'identifiant ou null si non trouvée</returns>
-    public Category? GetCategoryById(int categoryId)
+    public Category? GetCategoryById(int id)
     {
         try
         {
-            return _context.Categories.FirstOrDefault(c => c.Id == categoryId);
+            _logger.LogInformation("Récupération de la catégorie avec l'ID: {CategoryId}", id);
+            return _context.Categories.Find(id);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la récupération de la catégorie avec l'ID: {CategoryId}", categoryId);
+            _logger.LogError(ex, "Erreur lors de la récupération de la catégorie avec l'ID: {CategoryId}", id);
             throw;
         }
     }
 
-    /// <summary>
-    /// Ajoute une nouvelle catégorie dans la base de données
-    /// </summary>
-    /// <param name="category">La catégorie à ajouter</param>
-    /// <returns>La catégorie ajoutée</returns>
     public Category AddCategory(Category category)
     {
         try
         {
-            ArgumentNullException.ThrowIfNull(category);
-            var result = _context.Categories.Add(category);
-            _context.SaveChanges();
-            return result.Entity;
+            _logger.LogInformation("Ajout d'une nouvelle catégorie: {CategoryName}", category.Name);
+            _context.Categories.Add(category);
+            SaveChanges();
+            return category;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de l'ajout de la catégorie: {CategoryName}", category?.Name);
+            _logger.LogError(ex, "Erreur lors de l'ajout de la catégorie: {CategoryName}", category.Name);
             throw;
         }
     }
 
-    /// <summary>
-    /// Met à jour une catégorie existante
-    /// </summary>
-    /// <param name="category">La catégorie avec les nouvelles informations</param>
     public void UpdateCategory(Category category)
     {
         try
         {
-            ArgumentNullException.ThrowIfNull(category);
-            
-            var existingCategory = _context.Categories.Find(category.Id);
-            if (existingCategory == null)
-            {
-                throw new KeyNotFoundException($"Catégorie avec l'ID {category.Id} non trouvée");
-            }
-
-            _context.Entry(existingCategory).CurrentValues.SetValues(category);
-            _context.SaveChanges();
+            _logger.LogInformation("Mise à jour de la catégorie: {CategoryId}", category.Id);
+            _context.Entry(category).State = EntityState.Modified;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la mise à jour de la catégorie: {CategoryId}", category?.Id);
+            _logger.LogError(ex, "Erreur lors de la mise à jour de la catégorie: {CategoryId}", category.Id);
             throw;
         }
     }
 
-    /// <summary>
-    /// Supprime une catégorie existante
-    /// </summary>
-    /// <param name="categoryId">L'identifiant de la catégorie à supprimer</param>
-    public void DeleteCategory(int categoryId)
+    public void DeleteCategory(int id)
     {
         try
         {
-            var category = _context.Categories.Find(categoryId) 
-                ?? throw new KeyNotFoundException($"Catégorie avec l'ID {categoryId} non trouvée");
-            
-            _context.Categories.Remove(category);
-            _context.SaveChanges();
+            _logger.LogInformation("Suppression de la catégorie: {CategoryId}", id);
+            var category = _context.Categories.Find(id);
+            if (category != null)
+            {
+                _context.Categories.Remove(category);
+            }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erreur lors de la suppression de la catégorie avec l'ID: {CategoryId}", categoryId);
+            _logger.LogError(ex, "Erreur lors de la suppression de la catégorie: {CategoryId}", id);
             throw;
         }
     }
