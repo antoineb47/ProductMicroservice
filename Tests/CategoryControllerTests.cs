@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using ProductMicroservice.API.Data;
+using ProductMicroservice.Data;
 using ProductMicroservice.Controllers;
 using ProductMicroservice.Models;
 using Xunit;
@@ -19,10 +19,19 @@ public class CategoryControllerTests : IDisposable
     public CategoryControllerTests()
     {
         _options = new DbContextOptionsBuilder<ProductContext>()
-            .UseInMemoryDatabase(databaseName: "TestDb")
+            .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .Options;
 
         _context = new ProductContext(_options);
+        
+        // Seed the database with initial categories
+        _context.Categories.AddRange(
+            new Category { Id = 1, Name = "Electronics", Description = "Electronic Items" },
+            new Category { Id = 2, Name = "Clothes", Description = "Dresses" },
+            new Category { Id = 3, Name = "Grocery", Description = "Grocery Items" }
+        );
+        _context.SaveChanges();
+        
         _mockLogger = new Mock<ILogger<CategoryController>>();
         _controller = new CategoryController(_context, _mockLogger.Object);
     }
@@ -42,19 +51,19 @@ public class CategoryControllerTests : IDisposable
         // Assert
         Assert.IsType<ActionResult<IEnumerable<Category>>>(result);
         var categories = Assert.IsAssignableFrom<IEnumerable<Category>>(result.Value);
-        Assert.Empty(categories);
+        Assert.Equal(3, categories.Count());
     }
 
     [Fact]
     public void GetCategories_WithExistingData_ReturnsAllCategories()
     {
         // Arrange
-        var categories = new[]
+        var newCategories = new[]
         {
-            new Category { Id = 1, Name = "Category 1" },
-            new Category { Id = 2, Name = "Category 2" }
+            new Category { Id = 4, Name = "Category 4" },
+            new Category { Id = 5, Name = "Category 5" }
         };
-        _context.Categories.AddRange(categories);
+        _context.Categories.AddRange(newCategories);
         _context.SaveChanges();
 
         // Act
@@ -62,14 +71,14 @@ public class CategoryControllerTests : IDisposable
 
         // Assert
         var returnValue = Assert.IsAssignableFrom<IEnumerable<Category>>(result.Value);
-        Assert.Equal(2, returnValue.Count());
+        Assert.Equal(5, returnValue.Count());
     }
 
     [Fact]
     public void GetCategory_WithValidId_ReturnsOkResult()
     {
         // Arrange
-        var category = new Category { Id = 1, Name = "Test Category" };
+        var category = new Category { Id = 4, Name = "Test Category" };
         _context.Categories.Add(category);
         _context.SaveChanges();
 
@@ -97,9 +106,8 @@ public class CategoryControllerTests : IDisposable
     public void GetCategories_WhenExceptionOccurs_ReturnsInternalError()
     {
         // Arrange
-        var mockContext = new Mock<ProductContext>(_options);
-        mockContext.Setup(c => c.Categories).Throws(new Exception("Database error"));
-        var controller = new CategoryController(mockContext.Object, _mockLogger.Object);
+        var exceptionContext = new ExceptionProductContext(_options);
+        var controller = new CategoryController(exceptionContext, _mockLogger.Object);
 
         // Act
         var result = controller.GetCategories();
@@ -113,9 +121,8 @@ public class CategoryControllerTests : IDisposable
     public void GetCategory_WhenExceptionOccurs_ReturnsInternalError()
     {
         // Arrange
-        var mockContext = new Mock<ProductContext>(_options);
-        mockContext.Setup(c => c.Categories).Throws(new Exception("Database error"));
-        var controller = new CategoryController(mockContext.Object, _mockLogger.Object);
+        var exceptionContext = new ExceptionProductContext(_options);
+        var controller = new CategoryController(exceptionContext, _mockLogger.Object);
 
         // Act
         var result = controller.GetCategory(1);
@@ -124,4 +131,11 @@ public class CategoryControllerTests : IDisposable
         var statusCodeResult = Assert.IsType<ObjectResult>(result.Result);
         Assert.Equal(500, statusCodeResult.StatusCode);
     }
+}
+
+// Ajout d'une classe locale pour simuler une exception lors de l'accès à Categories
+public class ExceptionProductContext : ProductMicroservice.Data.ProductContext
+{
+    public ExceptionProductContext(Microsoft.EntityFrameworkCore.DbContextOptions<ProductMicroservice.Data.ProductContext> options) : base(options) { }
+    public override Microsoft.EntityFrameworkCore.DbSet<ProductMicroservice.Models.Category> Categories => throw new Exception("Database error");
 } 

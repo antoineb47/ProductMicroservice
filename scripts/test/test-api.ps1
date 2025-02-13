@@ -1,5 +1,5 @@
 ﻿param(
-    [int]$Port = $(Read-Host -Prompt "Port de l'API (ex: 41528)")
+    [int]$Port = $(Read-Host -Prompt "Port de l'API (5000 pour local, 5020 pour IIS, 5040 pour Docker)")
 )
 
 $baseUrl = "http://localhost:$Port"
@@ -67,6 +67,6 @@ try {
         Write-Host "Détails: $($_.ErrorDetails.Message)" -ForegroundColor Red
     }
 }
-
 Write-Host "`nAppuyez sur Entrée pour fermer..."
 Read-Host
+

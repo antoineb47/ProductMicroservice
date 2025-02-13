@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Moq;
-using ProductMicroservice.API.Data;
+using ProductMicroservice.Data;
 using ProductMicroservice.Models;
 using ProductMicroservice.Repository;
 using System.Collections.Generic;

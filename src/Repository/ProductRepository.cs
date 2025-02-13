@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using ProductMicroservice.API.Data;
+using ProductMicroservice.Data;
 using ProductMicroservice.Models;
 
 namespace ProductMicroservice.Repository;
@@ -20,7 +20,7 @@ public class ProductRepository : IProductRepository
         try
         {
             _logger.LogInformation("Récupération de tous les produits");
-            return _context.Products.Include(p => p.Category).ToList();
+            return _context.Products.ToList();
         }
         catch (Exception ex)
         {
@@ -34,7 +34,7 @@ public class ProductRepository : IProductRepository
         try
         {
             _logger.LogInformation("Récupération du produit avec l'ID: {ProductId}", id);
-            return _context.Products.Include(p => p.Category).FirstOrDefault(p => p.Id == id);
+            return _context.Products.FirstOrDefault(p => p.Id == id);
         }
         catch (Exception ex)
         {

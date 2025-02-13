@@ -2,7 +2,7 @@
 param(
     [Parameter(Mandatory=$false)]
     [ValidateRange(1,65535)]
-    [int]$Port = $(Read-Host -Prompt "Entrez le port de l'API (ex: 41528)")
+    [int]$Port = $(Read-Host -Prompt "Port de l'API (5000 pour local, 5020 pour IIS, 5040 pour Docker)")
 )
 
 # Prevent the script from closing on errors

@@ -1,19 +1,18 @@
 using Microsoft.EntityFrameworkCore;
 using ProductMicroservice.Models;
 
-namespace ProductMicroservice.API.Data;
+namespace ProductMicroservice.Data;
 
 public class ProductContext : DbContext
 {
     public ProductContext(DbContextOptions<ProductContext> options) : base(options)
     {
-        // Only create if it doesn't exist
-        Database.EnsureCreated();
+
     }
 
-    public DbSet<Product> Products => Set<Product>();
+    public virtual DbSet<Product> Products => Set<Product>();
 
-    public DbSet<Category> Categories => Set<Category>();
+    public virtual DbSet<Category> Categories => Set<Category>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
