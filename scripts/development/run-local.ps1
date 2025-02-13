@@ -1,4 +1,4 @@
-﻿function Run-DotnetCommand {
+﻿function Invoke-DotnetCommand {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Operation,
@@ -18,12 +18,12 @@
 $projectPath = Join-Path $PSScriptRoot "..\.."
 Push-Location $projectPath
 
-Run-DotnetCommand "Nettoyage" @("clean")
-Run-DotnetCommand "Restauration" @("restore")
-Run-DotnetCommand "Construction" @("build")
-Run-DotnetCommand "Tests unitaires" @("test", "--verbosity", "normal")
+Invoke-DotnetCommand "Nettoyage" @("clean")
+Invoke-DotnetCommand "Restauration" @("restore")
+Invoke-DotnetCommand "Construction" @("build")
+Invoke-DotnetCommand "Tests unitaires" @("test", "--verbosity", "normal")
 
 # Démarrer l'application et ouvrir Swagger
-Run-DotnetCommand "Démarrage (hot reload activé)" @("watch", "run", "--project", "src/ProductMicroservice.csproj")
+Invoke-DotnetCommand "Démarrage (hot reload activé)" @("watch", "run", "--project", "src/ProductMicroservice.csproj")
 
 Pop-Location

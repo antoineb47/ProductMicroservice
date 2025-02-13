@@ -46,6 +46,26 @@ public class CategoryControllerTests : IDisposable
     }
 
     [Fact]
+    public void GetCategories_WithExistingData_ReturnsAllCategories()
+    {
+        // Arrange
+        var categories = new[]
+        {
+            new Category { Id = 1, Name = "Category 1" },
+            new Category { Id = 2, Name = "Category 2" }
+        };
+        _context.Categories.AddRange(categories);
+        _context.SaveChanges();
+
+        // Act
+        var result = _controller.GetCategories();
+
+        // Assert
+        var returnValue = Assert.IsAssignableFrom<IEnumerable<Category>>(result.Value);
+        Assert.Equal(2, returnValue.Count());
+    }
+
+    [Fact]
     public void GetCategory_WithValidId_ReturnsOkResult()
     {
         // Arrange
@@ -71,5 +91,37 @@ public class CategoryControllerTests : IDisposable
 
         // Assert
         Assert.IsType<NotFoundResult>(result.Result);
+    }
+
+    [Fact]
+    public void GetCategories_WhenExceptionOccurs_ReturnsInternalError()
+    {
+        // Arrange
+        var mockContext = new Mock<ProductContext>(_options);
+        mockContext.Setup(c => c.Categories).Throws(new Exception("Database error"));
+        var controller = new CategoryController(mockContext.Object, _mockLogger.Object);
+
+        // Act
+        var result = controller.GetCategories();
+
+        // Assert
+        var statusCodeResult = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(500, statusCodeResult.StatusCode);
+    }
+
+    [Fact]
+    public void GetCategory_WhenExceptionOccurs_ReturnsInternalError()
+    {
+        // Arrange
+        var mockContext = new Mock<ProductContext>(_options);
+        mockContext.Setup(c => c.Categories).Throws(new Exception("Database error"));
+        var controller = new CategoryController(mockContext.Object, _mockLogger.Object);
+
+        // Act
+        var result = controller.GetCategory(1);
+
+        // Assert
+        var statusCodeResult = Assert.IsType<ObjectResult>(result.Result);
+        Assert.Equal(500, statusCodeResult.StatusCode);
     }
 } 

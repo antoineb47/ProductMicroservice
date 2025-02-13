@@ -57,7 +57,7 @@ try {
     Write-Host "`nGET /api/Product/$($nouveau.id)" -ForegroundColor Green
     $produit | ConvertTo-Json
 
-    $delete = Invoke-RestMethod -Uri "$baseUrl/api/Product/$($nouveau.id)" -Method Delete
+    Invoke-RestMethod -Uri "$baseUrl/api/Product/$($nouveau.id)" -Method Delete
     Write-Host "`nDELETE /api/Product/$($nouveau.id)" -ForegroundColor Green
     
     Write-Host "`nTests terminés!" -ForegroundColor Green
